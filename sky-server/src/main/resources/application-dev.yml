@@ -9,5 +9,5 @@ sky:
   alioss:
     endpoint: oss-cn-beijing.aliyuncs.com
     access-key-id: LTAI5t9JCj3xVd3ZDyBeFDSp
-    access-key-secret: xxxx
+    access-key-secret: xxxxx
     bucket-name: sky-march
