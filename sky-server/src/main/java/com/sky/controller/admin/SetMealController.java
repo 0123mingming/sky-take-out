@@ -5,6 +5,7 @@ import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.SetMealService;
+import com.sky.vo.SetmealVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -79,6 +80,39 @@ public class SetMealController {
         setMealService.deleteBatch(ids);
 
         // 返回成功结果，表示删除操作完成
+        return Result.success();
+    }
+    /**
+     * 根据ID查询套餐信息
+     *
+     * 此接口用于通过特定的套餐ID来查询套餐的详细信息，包括套餐内的菜品信息
+     * 它使用GET请求方式，并通过路径变量{id}来指定要查询的套餐ID
+     *
+     * @param id 套餐ID，用于指定需要查询的套餐
+     * @return 返回包含套餐信息的Result对象，其中包含套餐的详细信息
+     */
+    @GetMapping("/{id}")
+    @ApiOperation("根据id查询套餐")
+    public Result<SetmealVO> getById(@PathVariable Long id) {
+        // 调用服务层方法，通过ID获取套餐信息，包括套餐内的菜品信息
+        SetmealVO setmealVO = setMealService.getByIdWithDish(id);
+        // 返回成功结果，包含查询到的套餐信息
+        return Result.success(setmealVO);
+    }
+
+    /**
+     * 修改套餐信息
+     * @param setmealDTO
+     * @return
+     */
+    @PutMapping
+    @ApiOperation("修改套餐")
+    public Result update(@RequestBody SetmealDTO setmealDTO) {
+        // 记录日志，追踪更新操作
+        log.info("更新套餐：{}", setmealDTO);
+        // 调用服务层方法，更新套餐信息
+        setMealService.update(setmealDTO);
+        // 返回成功结果，表示更新操作完成
         return Result.success();
     }
 }
