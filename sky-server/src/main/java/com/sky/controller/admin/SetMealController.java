@@ -115,4 +115,17 @@ public class SetMealController {
         // 返回成功结果，表示更新操作完成
         return Result.success();
     }
+    /**
+     * 更新套餐的销售状态
+     *
+     * @param status 套餐的销售状态，1表示起售，0表示停售
+     * @param id 套餐的唯一标识符
+     * @return 返回操作结果，成功则返回成功信息
+     */
+    @PostMapping("/status/{status}")
+    @ApiOperation("起售停售套餐")
+    public Result startOrStop(@PathVariable Integer status, Long id) {
+        setMealService.startOrStop(status, id);
+        return Result.success();
+    }
 }

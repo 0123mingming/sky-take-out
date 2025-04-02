@@ -6,6 +6,7 @@ import com.sky.constant.MessageConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.dto.SetmealDTO;
 import com.sky.dto.SetmealPageQueryDTO;
+import com.sky.entity.Dish;
 import com.sky.entity.Setmeal;
 import com.sky.entity.SetmealDish;
 import com.sky.exception.DeletionNotAllowedException;
@@ -108,11 +109,11 @@ public class SetMealServiceImpl implements SetMealService {
         // 查询套餐基本信息
         Setmeal setmeal = setmealMapper.getById(id);
         // 查询套餐关联的菜品信息
-        List<SetmealDish> setmealDishes =setMealDishMapper.getBySetmealId(id);
+        List<SetmealDish> setmealDishes = setMealDishMapper.getBySetmealId(id);
         // 创建SetmealVO对象用于封装查询结果
         SetmealVO setmealVO = new SetmealVO();
         // 将套餐基本信息复制到SetmealVO对象中
-        BeanUtils.copyProperties(setmeal,setmealVO);
+        BeanUtils.copyProperties(setmeal, setmealVO);
         // 将套餐关联的菜品信息设置到SetmealVO对象中
         setmealVO.setSetmealDishes(setmealDishes);
         // 返回封装好的SetmealVO对象
@@ -128,13 +129,13 @@ public class SetMealServiceImpl implements SetMealService {
     public void update(SetmealDTO setmealDTO) {
         // 创建一个新的套餐对象，并从DTO中复制属性
         Setmeal setmeal = new Setmeal();
-        BeanUtils.copyProperties(setmealDTO,setmeal);
+        BeanUtils.copyProperties(setmealDTO, setmeal);
 
         // 调用Mapper更新套餐信息
         setmealMapper.update(setmeal);
 
         // 获取套餐ID
-        Long setmealId  = setmealDTO.getId();
+        Long setmealId = setmealDTO.getId();
 
         // 删除与当前套餐关联的所有菜品
         setMealDishMapper.deleteBySetmealId(setmealId);
@@ -143,11 +144,40 @@ public class SetMealServiceImpl implements SetMealService {
         List<SetmealDish> setmealDishes = setmealDTO.getSetmealDishes();
 
         // 为每个关联菜品设置套餐ID
-        setmealDishes.forEach(setmealDish->{
+        setmealDishes.forEach(setmealDish -> {
             setmealDish.setSetmealId(setmealId);
         });
 
         // 批量插入更新后的关联菜品
         setMealDishMapper.insertBatch(setmealDishes);
+    }
+
+
+    /**
+     * 根据状态启动或停止某个菜品或套餐的销售
+     *
+     * @param status 要设置的状态，启用或禁用
+     * @param id 要操作的菜品或套餐的ID
+     */
+    public void startOrStop(Integer status, Long id) {
+        // 当状态为启用时，检查是否有套餐关联了该菜品，如果有且菜品禁用，则抛出异常
+        if (status == StatusConstant.ENABLE) {
+            // 查询与指定套餐ID关联的菜品列表
+            List<Dish> dishList = dishMapper.getBySetmealId(id);
+            if (dishList != null && dishList.size() > 0) {
+                dishList.forEach(dish -> {
+                    // 如果关联的菜品处于禁用状态，抛出异常不允许操作
+                    if (StatusConstant.DISABLE == dish.getStatus()) {
+                        throw new DeletionNotAllowedException(MessageConstant.SETMEAL_ON_SALE);
+                    }
+                });
+            }
+        }
+        // 更新套餐的状态，无论启用还是禁用
+        Setmeal setmeal = Setmeal.builder()
+                .id(id)
+                .status(status)
+                .build();
+        setmealMapper.update(setmeal);
     }
 }
