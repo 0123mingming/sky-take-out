@@ -14,7 +14,7 @@ import org.apache.ibatis.annotations.Select;
 import java.util.List;
 
 @Mapper
-public interface SetMealMapper {
+public interface SetmealMapper {
 
     /**
      * 根据分类id查询套餐的数量
@@ -43,6 +43,7 @@ public interface SetMealMapper {
 
     /**
      * 根据id查询套餐
+     *
      * @param id
      * @return
      */
@@ -51,6 +52,7 @@ public interface SetMealMapper {
 
     /**
      * 根据id删除套餐
+     *
      * @param id
      */
     @Delete("delete from setmeal where id=#{id}")
@@ -58,6 +60,7 @@ public interface SetMealMapper {
 
     /**
      * 根据id修改套餐
+     *
      * @param setmeal
      */
     @AutoFill(OperationType.UPDATE)
@@ -65,12 +68,15 @@ public interface SetMealMapper {
 
     /**
      * 动态条件查询套餐
+     *
      * @param setmeal
      * @return
      */
     List<Setmeal> list(Setmeal setmeal);
+
     /**
      * 根据套餐id查询菜品选项
+     *
      * @param setmealId
      * @return
      */

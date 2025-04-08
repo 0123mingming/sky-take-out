@@ -12,7 +12,7 @@ import com.sky.entity.SetmealDish;
 import com.sky.exception.DeletionNotAllowedException;
 import com.sky.mapper.DishMapper;
 import com.sky.mapper.SetMealDishMapper;
-import com.sky.mapper.SetMealMapper;
+import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
 import com.sky.service.SetmealService;
 import com.sky.vo.DishItemVO;
@@ -28,7 +28,7 @@ import java.util.List;
 @Slf4j
 public class SetmealServiceImpl implements SetmealService {
     @Autowired
-    private SetMealMapper setmealMapper;
+    private SetmealMapper setmealMapper;
     @Autowired
     private SetMealDishMapper setMealDishMapper;
     @Autowired
