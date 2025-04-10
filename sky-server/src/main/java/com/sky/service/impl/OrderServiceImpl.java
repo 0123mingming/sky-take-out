@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -43,8 +44,10 @@ public class OrderServiceImpl implements OrderService {
     private UserMapper userMapper;
     @Autowired
     private WeChatPayUtil weChatPayUtil;
+
     /**
-     *用户下单
+     * 用户下单
+     *
      * @param ordersSubmitDTO
      * @return
      */
@@ -53,7 +56,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
         //处理各种业务异常(地址簿为空.购物车为空)
         AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
-        if(addressBook==null){
+        if (addressBook == null) {
             throw new AddressBookBusinessException(MessageConstant.ADDRESS_BOOK_IS_NULL);
         }
         //查询当前用户的购物车数据
@@ -62,12 +65,12 @@ public class OrderServiceImpl implements OrderService {
         Long userId = BaseContext.getCurrentId();
         shoppingCart.setUserId(userId);
         List<ShoppingCart> shoppingCartList = shoppingCartMapper.list(shoppingCart);
-        if(shoppingCartList==null||shoppingCartList.size()==0){
+        if (shoppingCartList == null || shoppingCartList.size() == 0) {
             throw new ShoppingCartBusinessException(MessageConstant.SHOPPING_CART_IS_NULL);
         }
         //向订单表插入一条数据
-        Orders orders=new Orders();
-        BeanUtils.copyProperties(ordersSubmitDTO,orders);
+        Orders orders = new Orders();
+        BeanUtils.copyProperties(ordersSubmitDTO, orders);
         orders.setOrderTime(LocalDateTime.now());
         orders.setPayStatus(Orders.UN_PAID);
         orders.setStatus(Orders.PENDING_PAYMENT);
@@ -79,11 +82,11 @@ public class OrderServiceImpl implements OrderService {
 
         orderMapper.insert(orders);
 
-        List<OrderDetail> orderDetailList =new ArrayList<>();
+        List<OrderDetail> orderDetailList = new ArrayList<>();
         //向订单明细表插入n条数据
-        for(ShoppingCart cart:shoppingCartList){
+        for (ShoppingCart cart : shoppingCartList) {
             OrderDetail orderDetail = new OrderDetail(); // 订单明细
-            BeanUtils.copyProperties(cart,orderDetail);
+            BeanUtils.copyProperties(cart, orderDetail);
             orderDetail.setOrderId(orders.getId());//设置当前订单明细关联的订单Id
             orderDetailList.add(orderDetail);
         }
@@ -100,6 +103,7 @@ public class OrderServiceImpl implements OrderService {
                 .build();
         return orderSubmitVO;
     }
+
     /**
      * 订单支付
      *
@@ -152,6 +156,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 用户端订单分页查询
+     *
      * @param pageNum
      * @param pageSize
      * @param status
@@ -160,48 +165,50 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public PageResult pageQuery4User(int pageNum, int pageSize, Integer status) {
         //设置分页
-        PageHelper.startPage(pageNum,pageSize);
+        PageHelper.startPage(pageNum, pageSize);
         OrdersPageQueryDTO ordersPageQueryDTO = new OrdersPageQueryDTO();
         ordersPageQueryDTO.setUserId(BaseContext.getCurrentId());
         ordersPageQueryDTO.setStatus(status);
         //分页条件查询
-        Page<Orders> page=orderMapper.pageQuery(ordersPageQueryDTO);
-        List<OrderVO> list=new ArrayList<>();
+        Page<Orders> page = orderMapper.pageQuery(ordersPageQueryDTO);
+        List<OrderVO> list = new ArrayList<>();
         //查询订单明细,并封装入orderVO进行响应
-        if(page!=null&& page.getTotal()>0){
-            for(Orders orders:page){
-                Long orderId=orders.getId();//  订单Id
+        if (page != null && page.getTotal() > 0) {
+            for (Orders orders : page) {
+                Long orderId = orders.getId();//  订单Id
                 //查询订单明细
-                List<OrderDetail> orderDetails=orderDetailMapper.getByOrderId(orderId);
+                List<OrderDetail> orderDetails = orderDetailMapper.getByOrderId(orderId);
                 OrderVO orderVO = new OrderVO();
-                BeanUtils.copyProperties(orders,orderVO);
+                BeanUtils.copyProperties(orders, orderVO);
                 orderVO.setOrderDetailList(orderDetails);
                 list.add(orderVO);
             }
         }
-        return new PageResult(page.getTotal(),list);
+        return new PageResult(page.getTotal(), list);
     }
 
     /**
      * 查询订单详情
+     *
      * @param id
      * @return
      */
     @Override
     public OrderVO details(Long id) {
         //根据id查询订单
-        Orders orders=orderMapper.getById(id);
+        Orders orders = orderMapper.getById(id);
         //查询该订单对应的菜品/套餐明细
         List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(orders.getId());
         //将该订单详情封装到VO中并返回
         OrderVO orderVO = new OrderVO();
-        BeanUtils.copyProperties(orders,orderVO);
+        BeanUtils.copyProperties(orders, orderVO);
         orderVO.setOrderDetailList(orderDetailList);
         return orderVO;
     }
 
     /**
      * 用户取消订单
+     *
      * @param id
      * @throws Exception
      */
@@ -210,17 +217,17 @@ public class OrderServiceImpl implements OrderService {
         //根据id查询订单
         Orders ordersDB = orderMapper.getById(id);
         //校验订单是否存在
-        if(ordersDB == null){
+        if (ordersDB == null) {
             throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
         }
         //订单状态 1待付款 2待接单 3已接单 4派送中 5已完成 6已取消
-        if(ordersDB.getStatus() > 2){
+        if (ordersDB.getStatus() > 2) {
             throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
         }
         Orders orders = new Orders();
         orders.setId(ordersDB.getId());
         //订单处于待接单状态下,需进行退款
-        if(ordersDB.getStatus().equals(Orders.TO_BE_CONFIRMED)){
+        if (ordersDB.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
             //调用微信支付退款接口
             weChatPayUtil.refund(
                     ordersDB.getNumber(), //商户订单号
@@ -235,5 +242,31 @@ public class OrderServiceImpl implements OrderService {
         orders.setCancelReason("用户取消");
         orders.setCancelTime(LocalDateTime.now());
         orderMapper.update(orders);
+    }
+
+    /**
+     * 再来一单
+     *
+     * @param id
+     */
+    @Override
+    public void repetition(Long id) {
+        //查询当前用户id
+        Long userId = BaseContext.getCurrentId();
+        //根据订单id查询当前订单详情
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+        //将订单详情对象转化为购物车对象
+        List<ShoppingCart> shoppingCartList = orderDetailList.stream().map(x -> {
+            ShoppingCart shoppingCart = new ShoppingCart();
+            //将原订单详情里面的菜品信息重新添加到购物车中
+            BeanUtils.copyProperties(x, shoppingCart, "id");
+            shoppingCart.setUserId(userId);
+            shoppingCart.setCreateTime(LocalDateTime.now());
+            return shoppingCart;
+
+
+         }).collect(Collectors.toList());
+        //将购物车对象添加到数据库中
+        shoppingCartMapper.insertBatch(shoppingCartList);
     }
 }
