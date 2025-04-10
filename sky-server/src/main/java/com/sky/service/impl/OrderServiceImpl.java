@@ -18,6 +18,7 @@ import com.sky.result.PageResult;
 import com.sky.service.OrderService;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
+import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import org.springframework.beans.BeanUtils;
@@ -266,13 +267,14 @@ public class OrderServiceImpl implements OrderService {
             return shoppingCart;
 
 
-         }).collect(Collectors.toList());
+        }).collect(Collectors.toList());
         //将购物车对象添加到数据库中
         shoppingCartMapper.insertBatch(shoppingCartList);
     }
 
     /**
      * 订单搜索
+     *
      * @param ordersPageQueryDTO
      * @return
      */
@@ -326,4 +328,26 @@ public class OrderServiceImpl implements OrderService {
         // 将该订单对应的所有菜品信息拼接在一起
         return String.join("", orderDishList);
     }
+
+    /**
+     * 各个状态的订单数量统计
+     *
+     * @return
+     */
+    @Override
+    public OrderStatisticsVO statistics() {
+        //根据状态,分别查询出待接单,待派送,派送中的订单数量
+        Integer toBeConfirmed = orderMapper.countStatus(Orders.TO_BE_CONFIRMED);
+        Integer confirmed = orderMapper.countStatus(Orders.CONFIRMED);
+        Integer deliveryInProgress = orderMapper.countStatus(Orders.DELIVERY_IN_PROGRESS);
+        //将查询出的数据封装到orderStatisticsVO中并返回
+        OrderStatisticsVO orderStatisticsVO = new OrderStatisticsVO();
+        orderStatisticsVO.setToBeConfirmed(toBeConfirmed);
+        orderStatisticsVO.setConfirmed(confirmed);
+        orderStatisticsVO.setDeliveryInProgress(deliveryInProgress);
+
+
+        return orderStatisticsVO;
+    }
+
 }
